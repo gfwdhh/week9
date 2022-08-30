@@ -32287,8 +32287,12 @@ async function init() {
 
 async function listAvailableTokens(){
     console.log("initializing");
-    let response = await fetch('https://tokens.coingecko.com/uniswap/all.json');
-    let tokenListJSON = await response.json();
+    // let response = await fetch('https://tokens.coingecko.com/uniswap/all.json');
+
+    // let response = await fetch('https://tokens.coingecko.com/uniswap/all.json');
+    // let tokenListJSON = await response.json();
+    let response='{"name":"CoinGecko","logoURI":"https://www.coingecko.com/assets/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png","keywords":["defi"],"timestamp":"2022-08-17T04:08:12.925+00:00","tokens":[{"chainId":3,"address":"0xc778417E063141139Fce010982780140Aa0cD5Ab","name":"WETH","symbol":"WETH","decimals":18,"logoURI":"https://assets.coingecko.com/coins/images/2518/thumb/weth.png?1628852295"},{"chainId":3,"address":"0x07865c6E87B9F70255377e024ace6630C1Eaa37F","name":"USD Coin","symbol":"USDC","decimals":6,"logoURI":"https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png?1547042389"}],"version":{"major":975,"minor":1,"patch":0}}';
+    let tokenListJSON = JSON.parse(response);
     console.log("listing available tokens: ", tokenListJSON);
     tokens = tokenListJSON.tokens;
     console.log("tokens: ", tokens);
@@ -32369,7 +32373,7 @@ async function getPrice(){
     }
   
     // Fetch the swap price.
-    const response = await fetch(`https://api.0x.org/swap/v1/price?${qs.stringify(params)}`);
+    const response = await fetch(`https://ropsten.api.0x.org/swap/v1/price?${qs.stringify(params)}`);
     
     swapPriceJSON = await response.json();
     console.log("Price: ", swapPriceJSON);
@@ -32392,7 +32396,7 @@ async function getQuote(account){
     }
   
     // Fetch the swap quote.
-    const response = await fetch(`https://api.0x.org/swap/v1/quote?${qs.stringify(params)}`);
+    const response = await fetch(`https://ropsten.api.0x.org/swap/v1/quote?${qs.stringify(params)}`);
     
     swapQuoteJSON = await response.json();
     console.log("Quote: ", swapQuoteJSON);
@@ -32415,10 +32419,9 @@ async function trySwap(){
     let accounts = await ethereum.request({ method: "eth_accounts" });
     let takerAddress = accounts[0];
     console.log("takerAddress: ", takerAddress);
-  
-    const swapQuoteJSON = await getQuote(takerAddress);
-  
-    // Set Token Allowance
+    const ZERO_EX_ADDRESS = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+
+       // Set Token Allowance
     // Set up approval amount
     const fromTokenAddress = currentTrade.from.address;
     const maxApproval = new BigNumber(2).pow(256).minus(1);
@@ -32428,13 +32431,17 @@ async function trySwap(){
   
     // Grant the allowance target an allowance to spend our tokens.
     const tx = await ERC20TokenContract.methods.approve(
-        swapQuoteJSON.allowanceTarget,
+        ZERO_EX_ADDRESS,
         maxApproval,
     )
     .send({ from: takerAddress })
     .then(tx => {
         console.log("tx: ", tx)
     });
+    const swapQuoteJSON = await getQuote(takerAddress);
+    // Perform the swap
+    const receipt = await web3.eth.sendTransaction(swapQuoteJSON);
+    console.log("receipt: ", receipt);
 }
 
 init();
